@@ -1,20 +1,21 @@
-# DeepSeek PR Review Bot (DSH-powered)
+# DeepSeek PR Bot (DSH-powered)
 #
 # Runs on a self-hosted runner with the "deepseek-runner" label.
-# When someone comments "@deepseekReviewer review" on a PR, the runner
-# launches DSH headless to checkout, read, and review the PR with full
-# context, then posts the review as a PR comment.
+# Triggered by comments starting with "@deepseekReviewer" on a PR.
+# The comment body after "@deepseekReviewer" is passed as the task to DSH.
+# If empty, DSH performs a full code review by default.
+#
+# Examples:
+#   @deepseekReviewer review
+#   @deepseekReviewer Does this PR change deployment logic?
+#   @deepseekReviewer Does this break the ABAC design?
 #
 # Setup:
 #   1. Deploy a self-hosted runner with the "deepseek-runner" label (see runner/setup.sh).
 #   2. Install DSH (dsh CLI) on the runner machine.
-#   3. Add DEEPSEEK_API_KEY in repo Settings → Secrets and variables → Actions.
-#      (Multi-user support coming later — currently one shared key.)
+#   3. Each developer adds DEEPSEEK_API_KEY_<username> in repo Settings → Secrets.
 #   4. Drop this file into the target repo's .github/workflows/ directory.
-#
-# Other LLM providers (GPT, Claude, etc.) can be added with their own
-# runner labels and trigger phrases.
-name: DSH Review
+name: DeepSeek PR Bot
 
 on:
   issue_comment:
@@ -31,10 +32,10 @@ concurrency:
 
 jobs:
   review:
-    name: DSH review
+    name: DSH task
     if: |
       github.event.issue.pull_request &&
-      startsWith(github.event.comment.body, '@deepseekReviewer review') &&
+      startsWith(github.event.comment.body, '@deepseekReviewer') &&
       !contains(github.event.comment.body, '<!-- dsh-review -->')
     runs-on: [self-hosted, deepseek-runner]
     env:
@@ -42,47 +43,58 @@ jobs:
       GH_REPO: ${{ github.repository }}
       DEEPSEEK_API_KEY: ${{ secrets[format('DEEPSEEK_API_KEY_{0}', github.event.comment.user.login)] }}
     steps:
-      - name: Run DSH review
+      - name: Run DSH task
         run: |
           set -e
           PR_NUMBER="${{ github.event.issue.number }}"
           TRIGGER_USER="${{ github.event.comment.user.login }}"
           LOG_DIR="/home/avernet/logs"
           mkdir -p "${LOG_DIR}"
-          LOG_FILE="${LOG_DIR}/review-pr-${PR_NUMBER}-$(date +%Y%m%d-%H%M%S).log"
+          LOG_FILE="${LOG_DIR}/pr-${PR_NUMBER}-$(date +%Y%m%d-%H%M%S).log"
 
-          cat > /tmp/review-task.txt <<'DSHTASK'
-          Review this pull request in the current repository.
+          # Extract the task from the comment: everything after the trigger word
+          RAW_BODY="${{ github.event.comment.body }}"
+          # The trigger is "@deepseekReviewer" with optional leading spaces
+          TASK=$(echo "${RAW_BODY}" | sed 's/^[[:space:]]*@deepseekReviewer[[:space:]]*//')
+
+          # Default to "review" if nothing follows
+          if [ -z "${TASK}" ]; then
+            TASK="review"
+          fi
+
+          cat > /tmp/task.txt <<'DSHTASK'
+          You are working on a pull request. The user asked:
+          
+          DSHTASK
+          echo "\"${TASK}\"" >> /tmp/task.txt
+
+          cat >> /tmp/task.txt <<'DSHTASK'
+
           Steps:
-          0. FIRST: React with 👀 (eyes emoji) on the comment that triggered this
-             review, to acknowledge you received the request.
+          0. FIRST: React with 👀 on the triggering comment.
           1. Checkout the repository and the PR branch using gh CLI.
-          2. Read all changed files vs the target branch with full context.
-          3. Analyze for code correctness, security issues, and adherence to
-             the repo architecture rules (service/core/port layering, no
-             leaked HTTP concerns in core, no raw env access outside composition
-             roots).
-          4. Read the AGENTS.md and CLAUDE.md files in the repo for project conventions.
-          5. Post your findings as a PR review comment using 'gh pr comment'.
-             Use the title '## 🤖 DeepSeek Review'. Focus on P1 issues first.
-             Be concise and actionable. At the end of each comment, append
-             '<!-- dsh-review -->' on its own line so the workflow can
-             distinguish bot comments from human comments.
+          2. Read relevant files and diffs with full context.
+          3. Answer the user's question or perform the requested analysis.
+             If the task is "review", perform a full code review for
+             correctness, security, and architecture compliance.
+          4. Read AGENTS.md / CLAUDE.md for project conventions if relevant.
+          5. Post your response as a PR comment using 'gh pr comment'.
+             At the end, append '<!-- dsh-review -->' on its own line.
           DSHTASK
 
-          echo "Starting DSH review for PR #${PR_NUMBER}..."
-          dsh --profile headless "$(cat /tmp/review-task.txt)" 2>&1 | tee "${LOG_FILE}"
-          echo "DSH review completed. Log saved to ${LOG_FILE}"
+          echo "Starting DSH task for PR #${PR_NUMBER}: ${TASK}"
+          dsh --profile headless "$(cat /tmp/task.txt)" 2>&1 | tee "${LOG_FILE}"
+          echo "DSH task completed. Log saved to ${LOG_FILE}"
 
       - name: Report error on failure
         if: failure()
         run: |
           gh pr comment "${{ github.event.issue.number }}" \
             -R "${GH_REPO}" \
-            --body "## 🤖 DeepSeek Review
+            --body "## 🤖 DeepSeek
 
           <sub>Triggered by @${{ github.event.comment.user.login }}</sub>
 
           ---
 
-          **Error:** DSH review failed. Please check the [workflow run](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}) for details."
+          **Error:** Task failed. Check [workflow run](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})."
