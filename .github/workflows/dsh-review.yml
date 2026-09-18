@@ -34,8 +34,8 @@ jobs:
     name: DSH review
     if: |
       github.event.issue.pull_request &&
-      contains(github.event.comment.body, '@deepseekReviewer review')
-      && github.event.comment.user.type != 'Bot'
+      contains(github.event.comment.body, '@deepseekReviewer review') &&
+      !contains(github.event.comment.body, '<!-- dsh-review -->')
     runs-on: [self-hosted, deepseek-runner]
     env:
       GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -65,7 +65,9 @@ jobs:
           4. Read the AGENTS.md and CLAUDE.md files in the repo for project conventions.
           5. Post your findings as a PR review comment using 'gh pr comment'.
              Use the title '## 🤖 DeepSeek Review'. Focus on P1 issues first.
-             Be concise and actionable.
+             Be concise and actionable. At the end of each comment, append
+             '<!-- dsh-review -->' on its own line so the workflow can
+             distinguish bot comments from human comments.
           DSHTASK
 
           echo "Starting DSH review for PR #${PR_NUMBER}..."
