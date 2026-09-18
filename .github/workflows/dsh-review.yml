@@ -65,6 +65,8 @@ jobs:
           cat > /tmp/review-task.txt <<'DSHTASK'
           Review this pull request in the current repository.
           Steps:
+          0. FIRST: React with 👀 (eyes emoji) on the comment that triggered this
+             review, to acknowledge you received the request.
           1. Checkout the repository and the PR branch using gh CLI.
           2. Read all changed files vs the target branch with full context.
           3. Analyze for code correctness, security issues, and adherence to
