@@ -37,12 +37,14 @@ jobs:
       contains(github.event.comment.body, '@deepseekReviewer review')
     runs-on: [self-hosted, deepseek-runner]
     env:
-      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      GH_REPO: ${{ github.repository }}
       DEEPSEEK_API_KEY: ${{ secrets[format('DEEPSEEK_API_KEY_{0}', github.event.comment.user.login)] }}
     steps:
       - name: Post "reviewing" placeholder
         run: |
           gh pr comment "${{ github.event.issue.number }}" \
+            -R "${GH_REPO}" \
             --body "## 🤖 DeepSeek Review
 
           <sub>Triggered by @${{ github.event.comment.user.login }}</sub>
@@ -54,7 +56,7 @@ jobs:
       - name: Run DSH review
         run: |
           PR_NUMBER="${{ github.event.issue.number }}"
-          REPO="${{ github.repository }}"
+          REPO="${GH_REPO}"
           TRIGGER_USER="${{ github.event.comment.user.login }}"
 
           dsh --profile headless "\
@@ -78,6 +80,7 @@ jobs:
         if: failure()
         run: |
           gh pr comment "${{ github.event.issue.number }}" \
+            -R "${GH_REPO}" \
             --body "## 🤖 DeepSeek Review
 
           <sub>Triggered by @${{ github.event.comment.user.login }}</sub>
