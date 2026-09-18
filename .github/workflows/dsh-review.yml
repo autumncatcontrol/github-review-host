@@ -8,7 +8,8 @@
 # Setup:
 #   1. Deploy a self-hosted runner with the "deepseek-runner" label (see runner/setup.sh).
 #   2. Install DSH (dsh CLI) on the runner machine.
-#   3. Add DEEPSEEK_API_KEY in repo Settings → Secrets and variables → Actions.
+#   3. Each developer adds their own secret named DEEPSEEK_API_KEY_<username>
+#      in repo Settings → Secrets and variables → Actions (no admin required).
 #   4. Drop this file into the target repo's .github/workflows/ directory.
 #
 # Other LLM providers (GPT, Claude, etc.) can be added with their own
@@ -37,7 +38,7 @@ jobs:
     runs-on: [self-hosted, deepseek-runner]
     env:
       GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      DEEPSEEK_API_KEY: ${{ secrets.DEEPSEEK_API_KEY }}
+      DEEPSEEK_API_KEY: ${{ secrets[format('DEEPSEEK_API_KEY_{0}', github.event.comment.user.login)] }}
     steps:
       - name: Post "reviewing" placeholder
         run: |
