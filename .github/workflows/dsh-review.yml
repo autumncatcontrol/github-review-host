@@ -35,24 +35,13 @@ jobs:
     if: |
       github.event.issue.pull_request &&
       contains(github.event.comment.body, '@deepseekReviewer review')
+      && github.event.comment.user.type != 'Bot'
     runs-on: [self-hosted, deepseek-runner]
     env:
       GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       GH_REPO: ${{ github.repository }}
       DEEPSEEK_API_KEY: ${{ secrets.DEEPSEEK_API_KEY }}
     steps:
-      - name: Post "reviewing" placeholder
-        run: |
-          gh pr comment "${{ github.event.issue.number }}" \
-            -R "${GH_REPO}" \
-            --body "## 🤖 DeepSeek Review
-
-          <sub>Triggered by @${{ github.event.comment.user.login }}</sub>
-
-          ---
-
-          ⏳ DSH agent is reviewing this PR..."
-
       - name: Run DSH review
         run: |
           set -e
