@@ -34,7 +34,7 @@ jobs:
     name: DSH review
     if: |
       github.event.issue.pull_request &&
-      contains(github.event.comment.body, '@deepseekReviewer review') &&
+      startsWith(github.event.comment.body, '@deepseekReviewer review') &&
       !contains(github.event.comment.body, '<!-- dsh-review -->')
     runs-on: [self-hosted, deepseek-runner]
     env:
