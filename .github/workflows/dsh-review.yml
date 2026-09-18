@@ -40,7 +40,7 @@ jobs:
     env:
       GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       GH_REPO: ${{ github.repository }}
-      DEEPSEEK_API_KEY: ${{ secrets.DEEPSEEK_API_KEY }}
+      DEEPSEEK_API_KEY: ${{ secrets[format('DEEPSEEK_API_KEY_{0}', github.event.comment.user.login)] }}
     steps:
       - name: Run DSH review
         run: |
