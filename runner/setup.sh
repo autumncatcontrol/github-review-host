@@ -24,7 +24,7 @@ RUNNER_LABELS="${RUNNER_LABELS:-deepseek-runner}"
 RUNNER_NAME="${RUNNER_NAME:-deepseek-runner-$(hostname)}"
 RUNNER_DIR="${HOME}/actions-runner"
 
-RUNNER_VERSION="2.322.0"
+RUNNER_VERSION="2.337.0"
 RUNNER_TAR="actions-runner-linux-x64-${RUNNER_VERSION}.tar.gz"
 RUNNER_URL="https://github.com/actions/runner/releases/download/v${RUNNER_VERSION}/${RUNNER_TAR}"
 
