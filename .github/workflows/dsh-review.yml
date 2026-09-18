@@ -8,8 +8,8 @@
 # Setup:
 #   1. Deploy a self-hosted runner with the "deepseek-runner" label (see runner/setup.sh).
 #   2. Install DSH (dsh CLI) on the runner machine.
-#   3. Each developer adds their own secret named DEEPSEEK_API_KEY_<username>
-#      in repo Settings → Secrets and variables → Actions (no admin required).
+#   3. Add DEEPSEEK_API_KEY in repo Settings → Secrets and variables → Actions.
+#      (Multi-user support coming later — currently one shared key.)
 #   4. Drop this file into the target repo's .github/workflows/ directory.
 #
 # Other LLM providers (GPT, Claude, etc.) can be added with their own
@@ -39,7 +39,7 @@ jobs:
     env:
       GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       GH_REPO: ${{ github.repository }}
-      DEEPSEEK_API_KEY: ${{ secrets[format('DEEPSEEK_API_KEY_{0}', github.event.comment.user.login)] }}
+      DEEPSEEK_API_KEY: ${{ secrets.DEEPSEEK_API_KEY }}
     steps:
       - name: Post "reviewing" placeholder
         run: |
@@ -56,11 +56,10 @@ jobs:
       - name: Run DSH review
         run: |
           PR_NUMBER="${{ github.event.issue.number }}"
-          REPO="${GH_REPO}"
           TRIGGER_USER="${{ github.event.comment.user.login }}"
 
           dsh --profile headless "\
-          Review PR #${PR_NUMBER} in repository ${REPO}. \
+          Review PR #${PR_NUMBER} in repository ${GH_REPO}. \
           The trigger user is ${TRIGGER_USER}. \
           \
           Steps: \
