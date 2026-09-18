@@ -55,29 +55,31 @@ jobs:
 
       - name: Run DSH review
         run: |
+          set -e
           PR_NUMBER="${{ github.event.issue.number }}"
           TRIGGER_USER="${{ github.event.comment.user.login }}"
           LOG_DIR="/home/avernet/logs"
           mkdir -p "${LOG_DIR}"
           LOG_FILE="${LOG_DIR}/review-pr-${PR_NUMBER}-$(date +%Y%m%d-%H%M%S).log"
 
-          TASK="Review PR #${PR_NUMBER} in repository ${GH_REPO}. \
-          The trigger user is ${TRIGGER_USER}. \
-          \
-          Steps: \
-          1. Checkout the repository and the PR branch. \
-          2. Read all changed files vs the target branch with full context. \
-          3. Analyze for code correctness, security issues, and adherence to \
-             the repo architecture rules (service/core/port layering, no \
-             leaked HTTP concerns in core, no raw env access outside composition \
-             roots). \
-          4. Read the AGENTS.md and CLAUDE.md files in the repo for project \
-             conventions. \
-          5. Post your findings as a PR review comment using 'gh pr comment'. \
-             Use the title '## 🤖 DeepSeek Review'.  Focus on P1 issues first. \
-             Be concise and actionable."
+          cat > /tmp/review-task.txt <<'DSHTASK'
+          Review this pull request in the current repository.
+          Steps:
+          1. Checkout the repository and the PR branch using gh CLI.
+          2. Read all changed files vs the target branch with full context.
+          3. Analyze for code correctness, security issues, and adherence to
+             the repo architecture rules (service/core/port layering, no
+             leaked HTTP concerns in core, no raw env access outside composition
+             roots).
+          4. Read the AGENTS.md and CLAUDE.md files in the repo for project conventions.
+          5. Post your findings as a PR review comment using 'gh pr comment'.
+             Use the title '## 🤖 DeepSeek Review'. Focus on P1 issues first.
+             Be concise and actionable.
+          DSHTASK
 
-          dsh --profile headless "${TASK}" 2>&1 | tee "${LOG_FILE}"
+          echo "Starting DSH review for PR #${PR_NUMBER}..."
+          dsh --profile headless "$(cat /tmp/review-task.txt)" 2>&1 | tee "${LOG_FILE}"
+          echo "DSH review completed. Log saved to ${LOG_FILE}"
 
       - name: Report error on failure
         if: failure()
