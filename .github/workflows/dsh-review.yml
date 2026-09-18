@@ -1,0 +1,83 @@
+# DeepSeek PR Review Bot (DSH-powered)
+#
+# Runs on a self-hosted runner with the "dsh-review" label.
+# When someone comments "@deepseekReviewer review" on a PR, the runner
+# launches DSH headless to checkout, read, and review the PR with full
+# context, then posts the review as a PR comment.
+#
+# Setup:
+#   1. Deploy a self-hosted runner with the "dsh-review" label (see runner/setup.sh).
+#   2. Install DSH (dsh CLI) on the runner machine.
+#   3. Add DEEPSEEK_API_KEY in repo Settings → Secrets and variables → Actions.
+#   4. Drop this file into the target repo's .github/workflows/ directory.
+name: DSH Review
+
+on:
+  issue_comment:
+    types: [created]
+
+permissions:
+  contents: read
+  pull-requests: write
+  issues: write
+
+concurrency:
+  group: dsh-review-${{ github.event.issue.number }}
+  cancel-in-progress: true
+
+jobs:
+  review:
+    name: DSH review
+    if: |
+      github.event.issue.pull_request &&
+      contains(github.event.comment.body, '@deepseekReviewer review')
+    runs-on: [self-hosted, dsh-review]
+    env:
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      DEEPSEEK_API_KEY: ${{ secrets.DEEPSEEK_API_KEY }}
+    steps:
+      - name: Post "reviewing" placeholder
+        run: |
+          gh pr comment "${{ github.event.issue.number }}" \
+            --body "## 🤖 DeepSeek Review
+
+          <sub>Triggered by @${{ github.event.comment.user.login }}</sub>
+
+          ---
+
+          ⏳ DSH agent is reviewing this PR..."
+
+      - name: Run DSH review
+        run: |
+          PR_NUMBER="${{ github.event.issue.number }}"
+          REPO="${{ github.repository }}"
+          TRIGGER_USER="${{ github.event.comment.user.login }}"
+
+          dsh --profile headless "\
+          Review PR #${PR_NUMBER} in repository ${REPO}. \
+          The trigger user is ${TRIGGER_USER}. \
+          \
+          Steps: \
+          1. Checkout the repository and the PR branch. \
+          2. Read all changed files vs the target branch with full context. \
+          3. Analyze for code correctness, security issues, and adherence to \
+             the repo architecture rules (service/core/port layering, no \
+             leaked HTTP concerns in core, no raw env access outside composition \
+             roots). \
+          4. Read the AGENTS.md and CLAUDE.md files in the repo for project \
+             conventions. \
+          5. Post your findings as a PR review comment using 'gh pr comment'. \
+             Use the title '## 🤖 DeepSeek Review'.  Focus on P1 issues first. \
+             Be concise and actionable."
+
+      - name: Report error on failure
+        if: failure()
+        run: |
+          gh pr comment "${{ github.event.issue.number }}" \
+            --body "## 🤖 DeepSeek Review
+
+          <sub>Triggered by @${{ github.event.comment.user.login }}</sub>
+
+          ---
+
+          **Error:** DSH review failed. Please check the [workflow run](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}) for details."
