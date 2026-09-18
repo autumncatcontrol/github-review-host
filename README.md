@@ -7,7 +7,7 @@ Self-hosted GitHub Actions runner for DSH-powered PR code review.
 ```
 GitHub PR comment "@deepseekReviewer review"
   → GitHub Actions workflow (issue_comment trigger)
-    → Picked up by self-hosted runner (label: dsh-review)
+    → Picked up by self-hosted runner (label: deepseek-runner)
       → dsh --profile headless reviews the PR with full context
         → Posts findings as a PR review comment
 ```
@@ -23,7 +23,7 @@ bash runner/setup.sh
 ```
 
 The script downloads the GitHub Actions runner agent, registers it with the
-`dsh-review` label, and installs it as a systemd service.
+`deepseek-runner` label, and installs it as a systemd service.
 
 ### 2. Install DSH on the runner
 

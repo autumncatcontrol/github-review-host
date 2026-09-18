@@ -20,8 +20,8 @@ set -euo pipefail
 : "${GITHUB_RUNNER_TOKEN:?required}"
 : "${GITHUB_REPO_URL:?required}"
 
-RUNNER_LABELS="${RUNNER_LABELS:-dsh-review}"
-RUNNER_NAME="${RUNNER_NAME:-dsh-review-$(hostname)}"
+RUNNER_LABELS="${RUNNER_LABELS:-deepseek-runner}"
+RUNNER_NAME="${RUNNER_NAME:-deepseek-runner-$(hostname)}"
 RUNNER_DIR="${HOME}/actions-runner"
 
 RUNNER_VERSION="2.322.0"
