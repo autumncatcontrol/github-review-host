@@ -57,9 +57,11 @@ jobs:
         run: |
           PR_NUMBER="${{ github.event.issue.number }}"
           TRIGGER_USER="${{ github.event.comment.user.login }}"
+          LOG_DIR="/home/avernet/logs"
+          mkdir -p "${LOG_DIR}"
+          LOG_FILE="${LOG_DIR}/review-pr-${PR_NUMBER}-$(date +%Y%m%d-%H%M%S).log"
 
-          dsh --profile headless "\
-          Review PR #${PR_NUMBER} in repository ${GH_REPO}. \
+          TASK="Review PR #${PR_NUMBER} in repository ${GH_REPO}. \
           The trigger user is ${TRIGGER_USER}. \
           \
           Steps: \
@@ -74,6 +76,8 @@ jobs:
           5. Post your findings as a PR review comment using 'gh pr comment'. \
              Use the title '## 🤖 DeepSeek Review'.  Focus on P1 issues first. \
              Be concise and actionable."
+
+          dsh --profile headless "${TASK}" 2>&1 | tee "${LOG_FILE}"
 
       - name: Report error on failure
         if: failure()
