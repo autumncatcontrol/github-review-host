@@ -37,7 +37,7 @@ echo "  Dir:      ${RUNNER_DIR}"
 # ---- Download ----
 if [ ! -f "/tmp/${RUNNER_TAR}" ]; then
   echo "Downloading runner agent v${RUNNER_VERSION}..."
-  curl -sSfLo "/tmp/${RUNNER_TAR}" "${RUNNER_URL}"
+  curl -fLo "/tmp/${RUNNER_TAR}" "${RUNNER_URL}"
 fi
 
 mkdir -p "${RUNNER_DIR}"
